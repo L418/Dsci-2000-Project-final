@@ -1,0 +1,140 @@
+---
+title: "DSCI2000 HW3"
+author: "Agnes Lai"
+date: "11/23/2019"
+output: html_document
+---
+
+## Read the cleanup data from the mortality RR table
+# Combine male and female, smoker and non smoker in one table
+
+```{r}
+installed.packages("readxl")
+library(readxl)
+installed.packages("dplyr")
+library(dplyr)
+installed.packages("ggplot2")
+library(ggplot2)
+
+life <- read_xlsx("mortality table.xlsx")
+head(life)
+```
+## Read SIMULATED_LIFE_INSURANCE_DATA.Rds
+
+```{r}
+policy <- readRDS("SIMULATED_LIFE_INSURANCE_DATA.Rds")
+head(policy)
+nrow(policy)
+  
+```
+## Summarize the policy table by demographic
+```{r}
+
+policy_sum <- policy %>% group_by(AGE, M_F, S_NS)%>%
+  summarise(npolicy=n(), value=sum(POLICY_VAL))
+head(policy_sum)
+ 
+```
+
+## Calculate the payout value for age/sex/smoker/non-smoker
+
+
+```{r}
+n = nrow(life)
+ payout <- data.frame(AGE = numeric(n),
+                      M_F = character(n),
+                      S_NS = character(n),
+                      v1 = numeric(n),
+                      v2 = numeric(n),
+                      v3 = numeric(n),
+                      v4 = numeric(n),
+                      v5 = numeric(n),
+                      v6 = numeric(n),
+                      v7 = numeric(n),
+                      v8 = numeric(n),
+                      v9 = numeric(n),
+                      v10 = numeric(n),
+                      v11 = numeric(n),
+                      v12 = numeric(n),
+                      v13 = numeric(n),
+                      v14 = numeric(n),
+                      v15 = numeric(n),
+                      v16 = numeric(n),
+                      v17 = numeric(n),
+                      v18 = numeric(n),
+                      v19 = numeric(n),
+                      v20 = numeric(n),
+                      v21 = numeric(n),
+                      v22 = numeric(n),
+                      v23 = numeric(n),
+                      v24 = numeric(n),
+                      v25 = numeric(n),
+                      death_year1 = numeric(n),
+                      stringsAsFactors = FALSE)
+
+for(i in 1:nrow(life)) {
+  policy_data <- policy_sum %>% filter(AGE == life$AGE[i], M_F == life$M_F[i], S_NS == life$S_NS[i])
+  
+  
+  payout$AGE[i] <- life$AGE[i]
+  payout$M_F[i] <- life$M_F[i]
+  payout$S_NS[i] <- life$S_NS[i]
+  
+  interest_adjust = 1.0
+  prob_survive = 1.0
+  
+  for(year in 1:25) {
+    mortality = life[i, 3+year] / 1000
+    interest_adjust = interest_adjust / 1.05
+    
+    prob_death_in_year = prob_survive * mortality
+    if (year == 1){
+     policy_holders <- policy_data$npolicy[1]
+     # set to 0 if no row 
+     policy_holders[is.na(policy_holders)] <- 0
+     payout[i, "death_year1"] = mortality * policy_holders
+    }
+    value = interest_adjust * prob_death_in_year
+    
+     total_policy_value <- policy_data$value[1]
+     # set to 0 if no row 
+     total_policy_value[is.na(total_policy_value)] <- 0
+    
+     payout[i, 3+year] = value * total_policy_value
+    
+        prob_survive = prob_survive * (1-mortality)
+  }
+  
+   
+}              
+head(payout)
+nrow(payout)
+tail(payout)
+
+```
+# Calculate  the policy payout for each year 
+# #  and the death for  the first year
+```{r}
+sum(payout$death_year1)
+yearly_payout <-colSums(payout[, 4:28 ])
+yearly_payout
+```
+# Plot the graph for the total payout for each year
+```{r}
+# hist<-ggplot(data=payout, aes(x=yearly_payout))
+# hist+geom_histogram(binwidth=2.5, fill="green",colour ="red")
+
+payout_by_year <- data.frame(yearp = (seq(1:25)), yearly_payout)
+plot(yearly_payout) 
+ggplot(data=payout_by_year, mapping =aes(x = yearp, y=yearly_payout))+
+  geom_bar(stat="identity", fill="steelblue")+
+  theme_minimal()+
+  labs(x ="Year", y ="Total payout per year", title="Annual   Insurance Payout")
+
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
