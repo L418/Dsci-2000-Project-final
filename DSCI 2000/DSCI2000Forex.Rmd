@@ -1,0 +1,192 @@
+---
+title: "DSCI 2000 Forex"
+author: "Agnes Lai"
+date: "11/25/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+ 
+```{r}
+installed.packages("dplyr")
+library(dplyr)
+installed.packages("tidyr")
+library(tidyr)
+installed.packages("ggplot2")
+library(ggplot2)
+installed.packages("lubridate")
+library(lubridate)
+installed.packages("imputeTS")
+library(imputeTS)
+
+```
+# DXY index is from Yahoo.Finance.   https://fred.stlouisfed.org/series/FYGFGDQ188S
+
+# The other input datasets are from the Federal Reserve.
+https://finance.yahoo.com/quote/DXY.NYB/history?period1=1416808800&period2=1574575200&interval=1d&filter=history&frequency=1d
+
+# The objective of this project is to determine relationship between the US dollar valuation and the economic factors. It may yield an insight to  when the the US dollar will pivot from its current direction. Recognizing the early signal of a change of the currency
+trend direction is a very marketable skill.
+
+# The valuation of our currency provides a composite picture of our overall domestic economy versus the global economy.
+Business needs to hedge their investments to protect profitability.
+FOREX traders and depository institutes extract currency data to improve their trading odds in the FOREX market
+
+# To determine which economic factors influence the most on the valuation   of  US$
+
+# To determine how early the indicators signal a  change in the US$  movement direction   
+
+
+# Tidy up the DXY data frame.
+
+```{r}
+DXY <-read.csv("DX-Y.NYB.csv")
+head(DXY)
+DXY_A <-DXY %>% mutate(Date=as.Date(Date), Open=as.numeric(Open)) %>% select(Date, Open)%>% filter( Open!= "null")
+head(DXY_A)
+ggplot(data=DXY_A, mapping =aes(x = Date, y =Open ))+
+      geom_smooth(method ="loess",se =FALSE)+
+      geom_point()+
+      scale_color_viridis_d()+
+      theme_minimal()
+      
+```
+# Create  DXY monthly average data frame.
+
+```{r}
+DXY_B <- DXY_A %>% group_by(DATE= floor_date(Date, "month")) %>%  summarise(avg_DXY=mean(Open)) %>% as.data.frame()
+head(DXY_B)
+ggplot(data=DXY_B, mapping =aes(x = DATE, y =avg_DXY ))+
+      geom_smooth(method ="loess",se =FALSE)+
+      geom_point()+
+      scale_color_viridis_d()+
+      theme_minimal()+
+      labs(x ="DATE", y ="avg. DXY", title ="Average monthly DXY")
+```
+# Tidy up Federal Fund Rate.
+
+```{r}
+Fed_Rate <- read.csv("FEDFUNDS.csv")
+Fed_RateA <-Fed_Rate %>% mutate(DATE=as.Date(DATE,format= "%m/%d/%Y"), FEDFUNDS=as.numeric(FEDFUNDS))
+head(Fed_RateA)
+nrow(Fed_RateA)
+ggplot(data=Fed_RateA, mapping =aes(x = DATE, y =FEDFUNDS ))+
+      geom_smooth(method ="loess",se =FALSE)+
+      geom_point()+
+      scale_color_viridis_d()+
+      theme_minimal()+
+      labs(x ="DATE", y ="Fed Fund Rate", title ="Federal Fund RATE")
+```
+# Tidy up Inflation Future Expected Rate.
+
+```{r}
+Inf_Rate <- read.csv("T5YIFR.csv")
+InfA <-Inf_Rate %>% mutate(DATE=as.Date(DATE,format= "%m/%d/%Y"), T5YIFR=as.numeric(T5YIFR))%>%filter(T5YIFR != "")
+head(InfA)
+ggplot(data=InfA, mapping =aes(x = DATE, y =T5YIFR))+
+      geom_smooth(method ="loess",se =FALSE)+
+      geom_point()+
+      scale_color_viridis_d()+
+      theme_minimal()+
+      labs(x ="DATE", y ="Inflation Future Expected Rate", title ="Inflation Future Expected Rate")
+
+```
+# Create Inflation Future Expected Rate monthly avg. data frame.
+ 
+```{r}
+InfB <- InfA %>% group_by(DATE= floor_date(DATE, "month")) %>%  summarise(avg_Inf=mean(T5YIFR)) %>% as.data.frame()
+head(InfB)
+nrow(InfB)
+ggplot(data=InfB, mapping =aes(x = DATE, y =avg_Inf ))+
+      geom_smooth(method ="loess",se =FALSE)+
+      geom_point()+
+      scale_color_viridis_d()+
+      theme_minimal()+
+      labs(x ="DATE", y ="Avg. Inflation Future Expected RateY", title ="Avg monthly Inflatin Future Expected R")
+```
+#  Tidyup balance of Trades and Services payment data frame.
+ 
+```{r}
+BOP <- read.csv("BOPGSTB.csv")
+BOPA <-BOP %>% mutate(DATE=as.Date(DATE,format= "%m/%d/%Y"), BOPGSTB=as.numeric(BOPGSTB))%>%filter(BOPGSTB != "")
+head(BOPA, 10)
+nrow(BOPA)
+ggplot(data=BOPA, mapping =aes(x = DATE, y =BOPGSTB ))+
+      geom_smooth(method ="loess",se =FALSE)+
+      geom_point()+
+      scale_color_viridis_d()+
+      theme_minimal()+
+      labs(x ="DATE", y ="Balance of Trade/Services", title ="Balance of Trade and Service payment")
+```
+# Tidy up GDP to National Debt percentage data frame.
+
+```{r}
+DEBTGDP_QTR <- read.csv("GFDEGDQ188S.csv")
+DEBTGDP_QTR <- DEBTGDP_QTR %>% mutate(DATE=as.Date(DATE,format= "%m/%d/%Y"), GFDEGDQ188S=as.numeric(GFDEGDQ188S))%>%filter(GFDEGDQ188S != "") %>% as.data.frame()
+head(DEBTGDP_QTR)
+nrow(DEBTGDP_QTR)
+plot(DEBTGDP_QTR)
+```
+# Create  monthly Public debt to GDP %  data frame based on its quarterly data frame.
+
+```{r}
+months <- data.frame(DATE= seq.Date(from=first(DEBTGDP_QTR$DATE), to=last(DEBTGDP_QTR$DATE), by="month"))
+DEBTGDP_M <- left_join(months,DEBTGDP_QTR,by=NULL)
+DEBTGDP_M <- na.interpolation(DEBTGDP_M, option = "linear")
+plot(DEBTGDP_M)
+head(DEBTGDP_M)
+ggplot(data=DEBTGDP_M, mapping =aes(x = DATE, y =GFDEGDQ188S ))+
+      geom_smooth(method ="loess",se =FALSE)+
+      geom_point()+
+      scale_color_viridis_d()+
+      theme_minimal()+
+      labs(x ="DATE", y ="DEBT to GDP  in %", title =" Monthly DEBT to GDP in Percentage")
+```
+# Join all four predictors with the DXY into one data frame.
+
+```{r}
+Indicators <-DXY_B%>% 
+          inner_join(Fed_RateA, by = "DATE")%>%
+          inner_join(InfB, by ="DATE")%>%
+          inner_join(BOPA, by = "DATE")%>%
+          inner_join(DEBTGDP_M, by = "DATE")
+
+head(Indicators,20)
+nrow(Indicators)
+
+```
+# Multiply Linear Regression. 
+
+```{r}
+model <-lm(avg_DXY~ FEDFUNDS + avg_Inf +BOPGSTB+GFDEGDQ188S , data = Indicators)
+summary(model)
+plot(model)
+cor(Indicators$avg_DXY, Indicators$avg_Inf)
+cor(Indicators$avg_DXY, Indicators$FEDFUNDS)
+cor(Indicators$avg_DXY, Indicators$BOPGSTB)
+cor(Indicators$avg_DXY, Indicators$GFDEGDQ188S)
+
+```
+# Linear regression model2
+
+```{r}
+model2 <-lm(avg_DXY~ avg_Inf, data =Indicators)
+summary(model2)
+plot(model2)
+```
+# Linear regression model3
+
+```{r}
+model3 <-lm(avg_DXY~ FEDFUNDS, data =Indicators)
+summary(model3)
+plot(model3)
+```
+# Inflation and DEBT to GDP percentage p's value indicate  both indicators statistically significant.  All these factors responsible for 27% variaiblity of the DXY price movement. 
+
+# The movement of the DXY is in closely synch with the Inflation future rate albeit in th opposition direction. Therefore, the inflation future expected rate is good indicator to sense when and which direction the currency price will treand.
+
+# The movement interest rate usually does not move much. When it changes, it does have any impact on the trend of the DXY.
+The regression indicates that it is not normally distributed from the qquline.
+
