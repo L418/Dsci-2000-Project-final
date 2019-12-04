@@ -4,12 +4,13 @@ author: "Agnes Lai"
 date: "11/25/2019"
 output: html_document
 ---
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r echo=FALSE}
+library(knitr)
+opts_chunk$set(echo=FALSE)
 ```
+
  
-```{r}
+```{r setup, include=FALSE}
 installed.packages("dplyr")
 library(dplyr)
 installed.packages("tidyr")
@@ -22,25 +23,103 @@ installed.packages("imputeTS")
 library(imputeTS)
 
 ```
-# DXY index is from Yahoo.Finance.   https://fred.stlouisfed.org/series/FYGFGDQ188S
+# The Objectives of this project are as follows:
 
-# The other input datasets are from the Federal Reserve.
-https://finance.yahoo.com/quote/DXY.NYB/history?period1=1416808800&period2=1574575200&interval=1d&filter=history&frequency=1d
+   1. To determine which economic factors influence the most on the  
+      valuation of the US dollars.
+   2. To determine what degree of influence these major economic
+      factors have on the US dollars.
+   3. To determine how early the indicators signal a change in the 
+      US$ movement direction.
+      
 
-# The objective of this project is to determine relationship between the US dollar valuation and the economic factors. It may yield an insight to  when the the US dollar will pivot from its current direction. Recognizing the early signal of a change of the currency
-trend direction is a very marketable skill.
+## US Dollars through the DXY as the response variables  and the five  major economic factors will be the predictors. Multiple linear regression will be employed.  
 
-# The valuation of our currency provides a composite picture of our overall domestic economy versus the global economy.
-Business needs to hedge their investments to protect profitability.
-FOREX traders and depository institutes extract currency data to improve their trading odds in the FOREX market
+# Why study the US Dollar not any other currency
 
-# To determine which economic factors influence the most on the valuation   of  US$
+   1. The US dollar is the most heavily traded single currency in         the world.
+   2. The US dollar involves approx. 80% of worldwide transactions.
+   3. It is the predominant currency held in reserve by other 
+      nations.
+   4. Strong backing by the US economy and its power.
+   5. Its fluctuation in value affects our daily life.
+   6. The dollar is commonly tracked by comparing its performance         against the value of basket of other currencies. 
+   
+## Why use the DXY as the dataset:
+   traded as an currency index fund and its valuation is readily       available 6 days a week. It is composed of major currencies in   
+   the world. 
+   
+###   
+    The DXY index is made of six currencies against the US dollar
+    
+    1. Euro            58.6%
+    2.Japanese Yen     12.6%
+    3. British pound   11.9%
+    4. Canadian dollar  9.1%
+    5. Swedish Krona    4.2%
+    6. Swiss Franc      3.6%
+ 
+ 
+# Major Economic Factors
 
-# To determine how early the indicators signal a  change in the US$  movement direction   
+Five major economic factors will be tested.  Political events, disasters, terrorist attacks, or one-time economic events will be omitted in this studies because of their npredictable,one-a-lifetime occurences. 
 
+## The Five Economic Indiators
+   1. Fed Fund Rate
+   2. Inflation Rate
+   3. Federal Debt
+   4. Gross Domestic Product
+   5. Balance of Trades and Services Payment
 
-# Tidy up the DXY data frame.
+Note: Federal debt/GDP percentage and Inflation Expected Future Rate data are used. 
 
+## Federal fund Rate: 
+   The interest rate depository institutes use when lending and borrowing among themselves.
+   
+## Inflation Rate:
+   Inflation rate and value of the domestic currency move in opposition direction.  Increase
+   in inflation rate means the domestic dollar worth less than before because the public need 
+   more unit dollar to pay for the same goods and servics.
+
+## Balance of Trade and Service Payment
+   The higher the balance of trade payment deficit is, the more the US dollar needs to pay for
+   foreign goods in their currency.  The higher the demand of foreign currency, the lower the US 
+   dollar is worth because there is the supply and demand at work.  More US dollars are needed to 
+   pay for the same foreign goods.
+   
+## GDP
+   A blooming economy means it is an attractive and secure place to invest.  An influx of foreign
+   investment leads to an increase in demand in US dollars.  The opposite leads to a depreciation
+   of the us dollar.
+   
+## US Government Debt
+   Investors are concerned about the growth of the US debt.  The debt put pressure on the governemnt
+   to either raise taxes or slow down spending.  This may lead to economic growth stagnation. Federal
+   Reserve will allow devaluation of the dollar so that the Us repayment will be worth less to the 
+   creditors.
+   
+## US DEBT/ GDP percertage
+   The combination of both has a better reflection of the trend of the valuation of our currency.Usually
+   higher the GDP will decrease the ratio.  Higher the US Debt will have a oppisite effect.
+
+## Data sources
+
+ 1.  DXY index is from Yahoo.Finance.
+      https://fred.stlouisfed.org/series/FYGFGDQ188S
+
+ 2.  Federal  Reserve for all economic data
+     https://finance.yahoo.com/quote/DXY.NYB/history?period1=141680      8800&period2=1574575200&interval=1d&filter=history&frequency=1d
+
+# Timeline of the data
+  The timeline is limited to 5 years( 2014 -2019) based on monthly
+  avg. valuation. Since the analysis is based on past data, lagging   effects occur. 
+  
+  The project's objective is to assess which economic indicators 
+  will signal in advance the change of the movement trend of the US 
+  dollars. 
+  
+## DXY trend line.
+  
 ```{r}
 DXY <-read.csv("DX-Y.NYB.csv")
 head(DXY)
@@ -53,7 +132,8 @@ ggplot(data=DXY_A, mapping =aes(x = Date, y =Open ))+
       theme_minimal()
       
 ```
-# Create  DXY monthly average data frame.
+
+# DXY monthly average  trend line.
 
 ```{r}
 DXY_B <- DXY_A %>% group_by(DATE= floor_date(Date, "month")) %>%  summarise(avg_DXY=mean(Open)) %>% as.data.frame()
@@ -65,8 +145,8 @@ ggplot(data=DXY_B, mapping =aes(x = DATE, y =avg_DXY ))+
       theme_minimal()+
       labs(x ="DATE", y ="avg. DXY", title ="Average monthly DXY")
 ```
-# Tidy up Federal Fund Rate.
 
+# Federal Fund Rate
 ```{r}
 Fed_Rate <- read.csv("FEDFUNDS.csv")
 Fed_RateA <-Fed_Rate %>% mutate(DATE=as.Date(DATE,format= "%m/%d/%Y"), FEDFUNDS=as.numeric(FEDFUNDS))
@@ -79,7 +159,8 @@ ggplot(data=Fed_RateA, mapping =aes(x = DATE, y =FEDFUNDS ))+
       theme_minimal()+
       labs(x ="DATE", y ="Fed Fund Rate", title ="Federal Fund RATE")
 ```
-# Tidy up Inflation Future Expected Rate.
+
+#  Inflation Future Expected Rate
 
 ```{r}
 Inf_Rate <- read.csv("T5YIFR.csv")
@@ -93,7 +174,8 @@ ggplot(data=InfA, mapping =aes(x = DATE, y =T5YIFR))+
       labs(x ="DATE", y ="Inflation Future Expected Rate", title ="Inflation Future Expected Rate")
 
 ```
-# Create Inflation Future Expected Rate monthly avg. data frame.
+
+#  Inflation Future Expected Rate monthly avg.rate
  
 ```{r}
 InfB <- InfA %>% group_by(DATE= floor_date(DATE, "month")) %>%  summarise(avg_Inf=mean(T5YIFR)) %>% as.data.frame()
@@ -106,7 +188,8 @@ ggplot(data=InfB, mapping =aes(x = DATE, y =avg_Inf ))+
       theme_minimal()+
       labs(x ="DATE", y ="Avg. Inflation Future Expected RateY", title ="Avg monthly Inflatin Future Expected R")
 ```
-#  Tidyup balance of Trades and Services payment data frame.
+
+#  Balance of Trades and Services payment 
  
 ```{r}
 BOP <- read.csv("BOPGSTB.csv")
@@ -120,7 +203,8 @@ ggplot(data=BOPA, mapping =aes(x = DATE, y =BOPGSTB ))+
       theme_minimal()+
       labs(x ="DATE", y ="Balance of Trade/Services", title ="Balance of Trade and Service payment")
 ```
-# Tidy up GDP to National Debt percentage data frame.
+
+# GDP National Debt percentage 
 
 ```{r}
 DEBTGDP_QTR <- read.csv("GFDEGDQ188S.csv")
@@ -129,7 +213,8 @@ head(DEBTGDP_QTR)
 nrow(DEBTGDP_QTR)
 plot(DEBTGDP_QTR)
 ```
-# Create  monthly Public debt to GDP %  data frame based on its quarterly data frame.
+
+# Monthly Public debt to GDP %  data frame based on its quarterly data frame.
 
 ```{r}
 months <- data.frame(DATE= seq.Date(from=first(DEBTGDP_QTR$DATE), to=last(DEBTGDP_QTR$DATE), by="month"))
@@ -144,7 +229,7 @@ ggplot(data=DEBTGDP_M, mapping =aes(x = DATE, y =GFDEGDQ188S ))+
       theme_minimal()+
       labs(x ="DATE", y ="DEBT to GDP  in %", title =" Monthly DEBT to GDP in Percentage")
 ```
-# Join all four predictors with the DXY into one data frame.
+# DXY and economic indicators table
 
 ```{r}
 Indicators <-DXY_B%>% 
@@ -157,36 +242,97 @@ head(Indicators,20)
 nrow(Indicators)
 
 ```
-# Multiply Linear Regression. 
+# Apply multiply Linear Regression. 
+ 
+## Predicted DXY = Bo+B1*Fed Fund rate =B2*Inflation Future Expected Rate +B3*Balance of Trade and Service payment +B4*Debt/GDP percentage +e
+
+# Inflation and DEBT to GDP percentage p's value indicate  both indicators statistically significant.  All these factors responsible for 27% variaiblity of the DXY price movement. 
+
 
 ```{r}
 model <-lm(avg_DXY~ FEDFUNDS + avg_Inf +BOPGSTB+GFDEGDQ188S , data = Indicators)
 summary(model)
 plot(model)
-cor(Indicators$avg_DXY, Indicators$avg_Inf)
-cor(Indicators$avg_DXY, Indicators$FEDFUNDS)
-cor(Indicators$avg_DXY, Indicators$BOPGSTB)
-cor(Indicators$avg_DXY, Indicators$GFDEGDQ188S)
 
 ```
-# Linear regression model2
+
+## Correlation: (DXY, Inf) Negatively correlated.
+
+```{r}
+cor(Indicators$avg_DXY, Indicators$avg_Inf)
+
+```
+
+## Correlation: (DXY, Fed Fund) very slightly negatively correlated. 
+Because of the almost zero interest rate for the first few years, it skewed the distribution. The last few years indicated the closely positive correlation between DXY and Fed Fund. 
+```{r}
+
+cor(Indicators$avg_DXY, Indicators$FEDFUNDS)
+
+```
+## Correlation:(DXY, Balance of Trade and Service Payments) Vey slight correlation. 
+```{r}
+cor(Indicators$avg_DXY, Indicators$BOPGSTB)
+
+```
+## Correlation:(DXY, Gov Debt/GDP percentage).  Very slight correlation. 
+
+```{r}
+cor(Indicators$avg_DXY, Indicators$GFDEGDQ188S)
+```
+
+## Expected DXY = B(0) + B(1) *Inflation Future Expected Rate + e
 
 ```{r}
 model2 <-lm(avg_DXY~ avg_Inf, data =Indicators)
 summary(model2)
 plot(model2)
 ```
-# Linear regression model3
+
+## Expected DXY = B(0) + B(1)* Fed Fund rate + e
 
 ```{r}
 model3 <-lm(avg_DXY~ FEDFUNDS, data =Indicators)
 summary(model3)
 plot(model3)
 ```
-# Inflation and DEBT to GDP percentage p's value indicate  both indicators statistically significant.  All these factors responsible for 27% variaiblity of the DXY price movement. 
 
-# The movement of the DXY is in closely synch with the Inflation future rate albeit in th opposition direction. Therefore, the inflation future expected rate is good indicator to sense when and which direction the currency price will treand.
+## The analysis
 
-# The movement interest rate usually does not move much. When it changes, it does have any impact on the trend of the DXY.
-The regression indicates that it is not normally distributed from the qquline.
+The movement of the DXY is in closely synch with the Inflation future rate albeit in the opposition direction. Therefore, the inflation future expected rate is good indicator to signal when and which direction the currency price will trend.
+
+ The movement of  Fed fund rate usually does not move much. However, when it steady move upward from mid 2015, DXY and the Fed Rate moved closely in lockstep.It has shown that the Fed rate has impact on the direction of the trend of the currency movement.
+ 
+ The p-value  of inflation Future Expected rate, Balancwe of Trade and Govt. Debt/GDP percentage are statistically significant. All the 5 factors explained 27% of the variability of the DXY.  
+ 
+ The inflation Future Expected rate pivoted  but in an opposite direction at  around the same time as the DXY.
+ I suspect that the  inflation rate I applied is not a past data but a future expected rate. That means the rate
+ is calculated based on the past data to predict the movement of the inflation rate. The Federal Reserve predicts the future of the overall economy. It signals how the currency trend is going to be in the near future. The other indicators do not give a strong signal where the economic future heads to. The data is from the past.  
+ 
+#  Conclusion: Inflation Future Expected Rate is the signal indicator
+   There is lag time effect from the other 4 economic factors because any economic impacts usually take a long          period of time to manifest. 
+         
+ 
+##  1. Economic factors influence the most on the valuation of the US dollars
+        Ans:   Inflation Future Expected Rate.
+        
+##  2. Degree of influence these major economic factors have on the US dollars
+        Ans:  The Inflation Future Expected Rate has the most impact.  The correlation between the 
+        DXY and the Inflation is -0.43.  The next closest is the Fed Fund rate -0.16. All the 5 factors
+        explained 27% of the variablity of DXY. Inflation  by itself  explained 17% of the variability of DXY. 
+        
+##  3. To determine how early the indicators signal a change in the US$ movement direction
+        Ans:The Inflation Future Expected Rate is a future rate which based on huge number of economic data
+        input to establish the rate. As a stock and FOREX investor, I will take advanage of this valuable data to            manage my investment portfolio. The other economic data trend does not have a consistent trend pattern with 
+        the DXY. 
+         
+        
+         
+     
+      
+   
+ 
+ 
+ 
+
 
